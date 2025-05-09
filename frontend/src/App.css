@@ -1,0 +1,65 @@
+/* #root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+} */
+.modal {
+  z-index: 1055 !important; /* Ensure modal is above all other elements */
+}
+
+.modal-backdrop {
+  z-index: 1050 !important; /* Ensure the backdrop is properly layered */
+}
+/* .logo {
+  filter: invert(15%) sepia(100%) saturate(7493%) hue-rotate(360deg) brightness(97%) contrast(102%);
+} */
+
+
+/* *{
+  margin: 0%;
+  padding: 0%;
+
+} */
+
+/* @media (min-width: 1500px) and (max-width: 4000px) {
+  .hide-between-150-200 {
+    display: none !important;
+  }
+} */
