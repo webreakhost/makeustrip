@@ -2,177 +2,119 @@
 
 
 
-// import React, { useState } from 'react';
-// import DatePicker from "react-datepicker";
-// import "react-datepicker/dist/react-datepicker.css";
-// import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { BACKENDURL } from "../../Config/Config";
 
-// const ToursTab = () => {
-//     const [tourType, setTourType] = useState('');
-//     const [destination, setDestination] = useState('');
-//     const [startDate, setStartDate] = useState(null);
-//     const navigate = useNavigate();
+const CabsTab = () => {
+  const [location, setLocation] = useState("");
+  const [pickUpDate, setPickUpDate] = useState("");
+  const [dropOffDate, setDropOffDate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-//     const handleSearch = () => {
-//         if (destination && tourType) {
-//             navigate(`/rental/${destination}/rental-list/`);
-//         }
-//     };
+  const navigate = useNavigate();
 
-//     return (
-//         <div className="tab-pane" id="tours">
-//             <div className="row d-flex align-items-end gap-3">
-//                 {/* Destination Input */}
-//                 <div className="col-lg-3 col-md-4">
-//                     <div className="form-group border rounded-1 mb-0">
-//                         <label className="fw-bold">Destination</label>
-//                         <input 
-//                             type="text" 
-//                             className="form-control fw-bold" 
-//                             placeholder="Enter destination" 
-//                             value={destination} 
-//                             onChange={(e) => setDestination(e.target.value)} 
-//                         />
-//                     </div>
-//                 </div>
+  const handleSearch = async () => {
+    if (!location || !pickUpDate || !dropOffDate) {
+      setError("Please fill in all fields.");
+      return;
+    }
 
-//                 {/* Date Picker */}
-//                 <div className="col-lg-3 col-md-4 ">
-//                     <div className=" form-group border rounded-1 mb-0">
-//                         <label className="fw-bold ">Choose Date</label>
-//                         {/* <DatePicker
-//                             selected={startDate}
-//                             onChange={(date) => setStartDate(date)}
-//                             className="form-control fw-bold "
-//                             placeholderText="Select a date"
-//                         /> */}
-//                         <input type='date' className="form-control fw-bold">
-                        
-//                         </input>
-                        
-//                     </div>
-//                 </div>
+    if (new Date(pickUpDate) >= new Date(dropOffDate)) {
+      setError("Drop-off date must be after pick-up date.");
+      return;
+    }
 
-//                 {/* Tour Type Dropdown */}
-//                 <div className="col-lg-3 col-md-4">
-//                     <div className="form-group border rounded-1 mb-0">
-//                         <label className="fw-bold">Tour Type</label>
-//                         <select 
-//                             className="form-control fw-bold"
-//                             value={tourType}
-//                             onChange={(e) => setTourType(e.target.value)}
-//                         >
-//                             <option value="">Select</option>
-//                             <option value="family">Family Package</option>
-//                             <option value="honeymoon">Honeymoon Package</option>
-//                             <option value="group">Group Package</option>
-//                             <option value="desert">Desert Tour</option>
-//                             <option value="history">History Tour</option>
-//                         </select>
-//                     </div>
-//                 </div>
+    setLoading(true);
+    setError("");
 
-//                 {/* Search Button */}
-//                 <div className="col-lg-2 col-md-3">
-//                     <div className="form-group mb-0">
-//                         <button
-//                             type="button"
-//                             className="btn btn-primary full-width fw-medium w-100"
-//                             onClick={handleSearch}
-//                         >
-//                             <i className="fa-solid fa-magnifying-glass me-2"></i>Search
-//                         </button>
-//                     </div>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// };
+    try {
+      const response = await axios.get(`${BACKENDURL}/api/v1/cars/searchcar`, {
+        params: { 
+          location: location.trim(),
+          pickUpDate: pickUpDate.trim(),
+          dropOffDate: dropOffDate.trim()
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-// export default ToursTab;
+      if (response.status === 200 && response.data.data.length > 0) {
+        navigate(`/cars/${location}`, {
+          state: { cabs: response.data.data, pickUpDate, dropOffDate },
+        });
+      } else {
+        setError("No cars available for the selected criteria.");
+      }
+    } catch (error) {
+      console.error("Error searching cabs:", error);
+      if (error.response) {
+        // If the server returned an error response
+        setError(
+          error.response.data.message ||
+            "An error occurred while searching for cars. Please try again."
+        );
+      } else {
+        // If there is a network error
+        setError("Network error. Please try again later.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-
-
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-const ToursTab = () => {
-    const [tourType, setTourType] = useState('');
-    const [destination, setDestination] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const navigate = useNavigate();
-
-    const handleSearch = () => {
-        if (destination && tourType) {
-            navigate(`/rental/${destination}/rental-list/`);
-        }
-    };
-
-    return (
-        <div className="tab-pane fade show active" id="tours" role="tabpanel" aria-labelledby="tours-tab">
-            <div className="row d-flex align-items-end gap-3">
-                {/* Destination Input */}
-                <div className="col-lg-3 col-md-4">
-                    <div className="form-group border rounded-1 mb-0">
-                        <label className="fw-bold">Destination</label>
-                        <input 
-                            type="text" 
-                            className="form-control fw-bold" 
-                            placeholder="Enter destination" 
-                            value={destination} 
-                            onChange={(e) => setDestination(e.target.value)} 
-                        />
-                    </div>
-                </div>
-
-                {/* Date Picker */}
-                <div className="col-lg-3 col-md-4">
-                    <div className="form-group border rounded-1 mb-0">
-                        <label className="fw-bold">Choose Date</label>
-                        <input 
-                            type="date" 
-                            className="form-control fw-bold"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                        />
-                    </div>
-                </div>
-
-                {/* Tour Type Dropdown */}
-                <div className="col-lg-3 col-md-4">
-                    <div className="form-group border rounded-1 mb-0">
-                        <label className="fw-bold">Tour Type</label>
-                        <select 
-                            className="form-control fw-bold"
-                            value={tourType}
-                            onChange={(e) => setTourType(e.target.value)}
-                        >
-                            <option value="">Select</option>
-                            <option value="family">Family Package</option>
-                            <option value="honeymoon">Honeymoon Package</option>
-                            <option value="group">Group Package</option>
-                            <option value="desert">Desert Tour</option>
-                            <option value="history">History Tour</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* Search Button */}
-                <div className="col-lg-2 col-md-3">
-                    <div className="form-group mb-0">
-                        <button
-                            type="button"
-                            className="btn btn-primary full-width fw-medium w-100"
-                            onClick={handleSearch}
-                        >
-                            <i className="fa-solid fa-magnifying-glass me-2"></i>Search
-                        </button>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="row gy-3 gx-md-3 gx-sm-2">
+      <div className="col-xl-8 col-lg-7 col-md-12">
+        <div className="row gy-3 gx-md-3 gx-sm-2">
+          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-6">
+            <input
+              type="text"
+              className="pickup form-control fw-bold"
+              placeholder="Enter Pickup Location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-6">
+            <input
+              type="date"
+              className="form-control fw-bold"
+              value={pickUpDate}
+              onChange={(e) => setPickUpDate(e.target.value)}
+            />
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="col-xl-4 col-lg-5 col-md-12">
+        <div className="row gy-3 gx-md-3 gx-sm-2">
+          <div className="col-md-8">
+            <input
+              type="date"
+              className="form-control fw-bold"
+              value={dropOffDate}
+              onChange={(e) => setDropOffDate(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4">
+            <button
+              type="button"
+              className="btn btn-primary full-width fw-medium"
+              onClick={handleSearch}
+              disabled={loading}
+            >
+              {loading ? "Searching..." : <><i className="fa-solid fa-magnifying-glass me-2"></i>Search</>}
+            </button>
+          </div>
+        </div>
+        {error && <p className="text-danger mt-2">{error}</p>}
+      </div>
+    </div>
+  );
 };
 
-export default ToursTab;
+export default CabsTab;
