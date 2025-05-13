@@ -110,6 +110,8 @@ export const getFlightCheckoutSession = async (req, res) => {
 
 
 // hotle booking controoler 
+import nodemailer from 'nodemailer';
+
 export const createBooking = async (req, res) => {
   const { room, hotelName, transactionDetails, guests, paymentMethodId } = req.body;
 
@@ -126,20 +128,18 @@ export const createBooking = async (req, res) => {
       payment_method: paymentMethodId,
       confirm: true,
       payment_method_types: ['card'],
-      // return_url: 'http://localhost:5173/success',
-      return_url: `${process.env.CLIENT_SITE_URL}success`,
+      return_url: `${process.env.CLIENT_SITE_URL}/success`,
     });
 
     if (paymentIntent.status !== "succeeded") {
       return res.status(400).json({ success: false, message: "Payment failed" });
     }
 
-    
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
- const user = await User.findById(req.userId);
-// if (!user) {
-//   return res.status(404).json({ message: "User not found" });
-// {
     const booking = new HotelBooking({
       room,
       hotelName,
@@ -147,21 +147,122 @@ export const createBooking = async (req, res) => {
       guests,
       stripePaymentId: paymentIntent.id,
       paymentStatus: "paid",
-      user:user._id
-      // userId: user, // Assuming user ID is passed via middleware
-      // userId: req.userId, 
+      user: user._id
     });
 
     await booking.save();
     user.hotelBookings.push(booking._id);
     await user.save();
 
-    res.status(200).json({ success: true, message: "Booking successful", booking });
+    // Send booking confirmation email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // const mailOptions = {
+    //   from: process.env.EMAIL_USER,
+    //   to: user.email,
+    //   subject: 'Hotel Booking Confirmation',
+    //   html: `
+    //     <h2>Booking Confirmation</h2>
+    //     <p>Dear ${user.name},</p>
+    //     <p>Thank you for booking with us. Here are your booking details:</p>
+    //     <ul>
+    //       <li>Hotel Name: ${hotelName}</li>
+    //       <li>Room: ${room}</li>
+    //       <li>Total Price: ₹${transactionDetails.totalPrice}</li>
+    //       <li>Guests: ${guests}</li>
+    //       <li>Booking ID: ${booking._id}</li>
+    //       <li>Payment Status: ${booking.paymentStatus}</li>
+    //     </ul>
+    //     <p>We look forward to your stay.</p>
+    //     <p>Best Regards,<br>Your Hotel Team</p>
+    //   `,
+    // };
+   
+
+    const mailOptions = {
+  from: process.env.EMAIL_USER,
+  to: user.email,
+  subject: 'Hotel Booking Confirmation',
+  html: `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+      <div style="text-align: center; background-color: #4CAF50; padding: 15px; border-radius: 10px 10px 0 0;">
+        <h2 style="color: #fff;">Booking Confirmation</h2>
+      </div>
+      <div style="padding: 20px;">
+        <p style="font-size: 16px;">Dear <strong>${user.name}</strong>,</p>
+        <p style="font-size: 16px;">Thank you for booking with us. Here are your booking details:</p>
+        
+        <table style="width: 100%; margin-top: 15px; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px; background-color: #f5f5f5; font-weight: bold;">Hotel Name:</td>
+            <td style="padding: 8px;">${hotelName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background-color: #f5f5f5; font-weight: bold;">Room:</td>
+            <td style="padding: 8px;">${room}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background-color: #f5f5f5; font-weight: bold;">Total Price:</td>
+            <td style="padding: 8px;">₹${transactionDetails.totalPrice}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background-color: #f5f5f5; font-weight: bold;">Booking ID:</td>
+            <td style="padding: 8px;">${booking._id}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background-color: #f5f5f5; font-weight: bold;">Payment Status:</td>
+            <td style="padding: 8px;">${booking.paymentStatus}</td>
+          </tr>
+        </table>
+
+        <h3 style="margin-top: 20px; font-size: 18px;">Guest Details:</h3>
+        <table style="width: 100%; margin-top: 10px; border-collapse: collapse; border: 1px solid #ddd;">
+          <thead>
+            <tr style="background-color: #4CAF50; color: #fff;">
+              <th style="padding: 10px; text-align: left;">Name</th>
+              <th style="padding: 10px; text-align: left;">Phone</th>
+              <th style="padding: 10px; text-align: left;">Passport Number</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${guests.map(guest => `
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${guest.firstName} ${guest.lastName}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${guest.phone ? guest.phone : "N/A"}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">${guest.passportNumber}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <p style="margin-top: 20px;">We look forward to your stay.</p>
+        <p>Best Regards,<br><strong>Your Hotel Team</strong></p>
+      </div>
+    </div>
+  `,
+};
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+      } else {
+        console.log("Email sent:", info.response);
+      }
+    });
+
+    res.status(200).json({ success: true, message: "Booking successful and email sent", booking });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 
 // Fetch all bookings for a user
 export const getUserBookings = async (req, res) => {
